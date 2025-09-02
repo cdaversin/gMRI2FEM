@@ -1,9 +1,10 @@
-name: gmri2fem
+name: gmri2fem-fork
 channels:
 - jorgenriseth
 - https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public
 - bioconda
 - conda-forge
+- conda-forge/label/fenics-dev
 - nodefaults
 dependencies:
 - python >=3.9,<3.12
@@ -23,7 +24,7 @@ dependencies:
 - panta-rhei
 - pymeshfix
 - cxx-compiler <1.7
-- fenics >=2019
+- fenics >=2019.1.0
 - dcm2niix
 - h5py >=3
 - pydantic-settings
@@ -36,4 +37,5 @@ dependencies:
 - fsl-fdt
 - pip
 - pip:
+  - fenics-ufl-legacy
   - wildmeshing

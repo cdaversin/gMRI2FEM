@@ -20,12 +20,16 @@ from gmri2fem.utils import find_timestamp, with_suffix, prepend_info, find_times
 @click.option("--output", "-o", type=Path, required=True)
 @click.option("--timetable", "-t", type=Path)
 @click.option("--timelabel", "-l", "timetable_sequence", type=str)
+@click.option("--seg_regex", "-sr", "seg_pattern", type=str)
+@click.option("--mri_regex", "-mr", "mri_data_pattern", type=str)
 def compute_mri_stats(
     seg_path: str | Path,
     mri_paths: tuple[str | Path],
     output: str | Path,
     timetable: Optional[str | Path],
     timetable_sequence: Optional[str | Path],
+    seg_pattern: Optional[str | Path],
+    mri_data_pattern: Optional[str | Path]
 ):
     if not Path(seg_path).exists():
         raise RuntimeError(f"Missing segmentation: {seg_path}")
@@ -40,6 +44,8 @@ def compute_mri_stats(
             Path(path),
             timetable,
             timetable_sequence,
+            seg_pattern,
+            mri_data_pattern
         )
         for path in mri_paths
     ]
@@ -63,15 +69,23 @@ def create_dataframe(
     mri_path: Path,
     timestamp_path: Optional[str | Path] = None,
     timestamp_sequence: Optional[str | Path] = None,
+    seg_pattern: Optional[str | Path] = None,
+    mri_data_pattern: Optional[str | Path] = None
 ) -> pd.DataFrame:
     data_mri = sm.load_mri(mri_path, dtype=np.single)
     seg_mri = sm.load_mri(seg_path, dtype=np.int16)
     sm.assert_same_space(seg_mri, data_mri)
 
-    seg_pattern = (
-        r"(?P<subject>sub-(control|patient)*\d{2})_seg-(?P<segmentation>[^\.]+)"
-    )
-    mri_data_pattern = r"(?P<subject>sub-(control|patient)*\d{2})_(?P<session>ses-\d{2})_(?P<mri_data>[^\.]+)"
+    if seg_pattern is None:
+        seg_pattern = (
+            r"(?P<subject>sub-(control|patient)*\d{2})_seg-(?P<segmentation>[^\.]+)"
+        )
+    else:
+        seg_pattern = fr"{seg_pattern}"
+    if mri_data_pattern is None:
+        mri_data_pattern = r"(?P<subject>sub-(control|patient)*\d{2})_(?P<session>ses-\d{2})_(?P<mri_data>[^\.]+)"
+    else:
+        mri_data_pattern = fr"{mri_data_pattern}"
     lut_path = with_suffix(Path(seg_path), "_LUT.txt")
     if Path(lut_path).exists():
         lut = segtools.read_lut(lut_path)
@@ -97,14 +111,17 @@ def create_dataframe(
         if (m := re.match(mri_data_pattern, Path(mri_path).name)) is not None
         else {"mri_data": None, "subject": None, "session": None}
     )
-    try:
-        data_info["timestamp"] = find_timestamp(
-            Path(str(timestamp_path)),
-            str(timestamp_sequence),
-            str(data_info["subject"]),
-            str(data_info["session"]),
-        )
-    except (ValueError, RuntimeError, KeyError):
+    if timestamp_path is not None:
+        try:
+            data_info["timestamp"] = find_timestamp(
+                Path(str(timestamp_path)),
+                str(timestamp_sequence),
+                str(data_info["subject"]),
+                str(data_info["session"]),
+            )
+        except (ValueError, RuntimeError, KeyError):
+            data_info["timestamp"] = None
+    else:
         data_info["timestamp"] = None
 
     info = seg_info | data_info
