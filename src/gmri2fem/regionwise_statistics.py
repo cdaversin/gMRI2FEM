@@ -52,6 +52,27 @@ def compute_mri_stats(
     pd.concat(dataframes).to_csv(output, sep=";", index=False)
 
 
+@click.command("get_stats_value")
+@click.option("--stats_file", "-f", "stats_file", type=Path, required=True)
+@click.option("--region", "-r", "region", type=str)
+@click.option("--info", "-i", "info", type=str)
+def get_stats_value(
+  stats_file: str | Path,
+  region: str,
+  info: str
+):
+    assert region in default_segmentation_groups().keys()
+    assert info in ["sum", "mean", "median", "std", "min", "max", "PC1", "PC5", "PC25", "PC75", "PC90", "PC95", "PC99"]
+
+    df = pd.read_csv(stats_file, sep=";")
+
+    region_row = df.loc[df["description"] == region]
+    info_value = region_row[info].values[0]
+    print(f"{info}[{region}] = {info_value}")
+
+    return info_value
+
+
 def segstats_region(seg_mri, description, labels):
     region_mask = np.isin(seg_mri.data, labels)
     voxelcount = region_mask.sum()

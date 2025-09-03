@@ -18,6 +18,7 @@ from _cli import LazyGroup
         "concentration": "gmri2fem.concentration.concentration",
         "reslice4d": "gmri2fem.reslice_4d.reslice4d",
         "stats": "gmri2fem.regionwise_statistics.compute_mri_stats",
+        "get-stats-value": "gmri2fem.regionwise_statistics.get_stats_value",
     },
 )
 def mri():
